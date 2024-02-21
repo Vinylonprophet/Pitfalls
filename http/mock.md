@@ -103,8 +103,8 @@ const app = express();
 Defined a simple route.
 
 ```js
-app.post('/', (req, res) => {
-  res.send('Hello World!');
+app.post('/M/simple', (req, res) => {
+    res.send('Mock Simple Route Test');
 });
 ```
 
@@ -118,6 +118,8 @@ const router = express.Router();
 
 #### 4. Listening on port
 
+**Considerations:** '0.0.0.0' is the IP address to which the server is bound. When you set it to '0.0.0.0', it means the server will accept requests from any IP address. This makes your server publicly accessible, not just locally. If you only want local access, you can set it to 'localhost' or '127.0.0.1'."
+
 ```js
 const port = 4500;
 http.createServer(app).listen(port, '0.0.0.0', () => {
@@ -130,4 +132,115 @@ http.createServer(app).listen(port, '0.0.0.0', () => {
 ## Enhancing the mock
 
 ### Resolving Cross-Origin
+
+If you open the browser normally instead of in cross-origin mode, and enter the following code in the console, you will encounter an error like this.
+
+```js
+fetch('http://localhost:4500/M/simple', {
+    method: "POST"
+})
+```
+
+**Warning:** Access to fetch at 'http://localhost:4500' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+
+CORS (Cross-Origin Resource Sharing) is a security mechanism used to control how web pages loaded from one domain can request resources from another domain. The error you see in the browser indicates that your request involves cross-origin interactions, and the server is not properly configured for CORS.
+
+Now we need to resolve this issue.
+
+
+
+#### CORS middleware
+
+We just need to add below code:
+
+```js
+// 使用 cors 中间件处理CORS头
+app.use(cors());
+```
+
+Now if you send the request again, the problem will be solved.
+
+
+
+### Define complex routing
+
+`router` is an Express router object created by calling `express.Router()`. `router.route` allows you to define routes for multiple HTTP methods on the same path without specifying the path multiple times. This enables you to chain multiple methods and define multiple handlers for the same path. This approach is more suitable for large applications or scenarios where multiple methods need to be defined for the same path.
+
+1.  Create router
+
+```js
+const router = express.Router();
+```
+
+2. Define routes
+
+```js
+router.route('/M/complex').post((req, res) => {
+    res.send('Test Mock Complex Route Post');
+});
+```
+
+You can also define both methods together using two approaches:
+
+```js
+router.route('/M/complex').get((req, res) => {
+    res.send('Test Mock Complex Route Get');
+}).post((req, res) => {
+    res.send('Test Mock Complex Route Post');
+});
+```
+
+Most of the time, it can be used to return JSON files:
+
+```js
+const pocJSON = require('./poc.json');
+pocRouter.route('/M/poc').get((req, res) => {
+    res.json({
+        'method': 'get'
+    });
+}).post((req, res) => {
+    res.json(pocJSON);
+});
+```
+
+
+
+3. Use the router which defined
+
+```js
+app.use('', router);
+```
+
+
+
+4. Adjust project structure
+
+You can export the router as a module to make app.js look cleaner and also to organize the functionality of your configured routes more clearly.
+
+```js
+// poc.js
+const express = require('express');
+const pocRouter = express.Router();
+
+pocRouter.route('/M/complex').get((req, res) => {
+    res.send('Test Mock Complex Route Get');
+}).post((req, res) => {
+    res.send('Test Mock Complex Route Post');
+});
+
+const pocJSON = require('./poc.json');
+pocRouter.route('/M/poc').get((req, res) => {
+    res.json({
+        'method': 'get'
+    });
+}).post((req, res) => {
+    res.json(pocJSON);
+});
+
+module.exports = pocRouter;
+
+// app.js
+const pocRouter = require('./--poc/poc');
+app.use('', pocRouter);
+```
 
