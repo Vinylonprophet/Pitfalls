@@ -244,3 +244,156 @@ const pocRouter = require('./--poc/poc');
 app.use('', pocRouter);
 ```
 
+
+
+### Add response headers
+
+Attributes and their functions of the header can be referred to in another article "Pitfalls-Http."
+
+This article is just a simple tutorial.
+
+#### 1. Content-Type
+
+You can use different **Content-Type** to return various values. For more details, you can check the network tab in your browser.
+
+```js
+router.route('/api/example')
+    .get((req, res) => {
+        const responseData = { message: 'GET request handled' };
+        res.setHeader('Content-Type', 'text/plain');
+        res.status(200).json(responseData);
+    })
+    .post((req, res) => {
+        const responseData = { message: 'POST request handled' };
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json(responseData);
+    });
+```
+
+```js
+fetch('http://localhost:4500/api/example', {
+    method: "GET",
+    headers: {
+        "Content-Type": "application/json"
+    }
+}).then(response => {
+    console.log(response)
+})
+```
+
+**Considerations:** 
+
+1. But we found that during the process of sending an API from the frontend, it still works even if the Content-Type used is different from what the backend returns. 
+
+2. At the same time, when sending the API with a Content-Type, the browser initiates a preflight check.
+
+**Reply:**
+
+1. Your code indeed sets different Content-Types, but in this scenario, Content-Type is primarily used to inform the server about the type of the request body. In your GET request, Content-Type is set to "application/json," but typically, GET requests do not include a request body. Hence, servers usually ignore it.
+
+2. When browsers send cross-origin requests, especially those with special headers (such as custom headers) or using certain types of request methods (e.g., PUT, DELETE), it triggers a "preflight" request for cross-origin requests. This is because, in a cross-origin situation, the browser needs to ensure whether the server allows the actual request. The preflight request uses the OPTIONS method.
+
+   The purpose of the preflight request is to ensure that the server supports cross-origin requests and to check if there are any restrictions on communication between the browser and the server before sending the actual request. During this preflight request, the browser checks for CORS-related headers (such as Access-Control-Allow-Origin, Access-Control-Allow-Methods, etc.) and whether specific request headers are allowed.
+
+   Setting the Content-Type in the request header is not the sole condition triggering a preflight request; other scenarios might also lead to preflight requests. For instance, using non-simple request methods (other than GET, HEAD, POST) or non-simple request header fields (such as custom header fields) could also trigger preflight requests.
+
+   Of course, if you ensure that the Content-Type in the request header is for a simple request (like application/x-www-form-urlencoded, multipart/form-data, text/plain), you're using a simple request method (GET, HEAD, POST), and there are no custom request header fields, then the browser won't send a preflight request and will directly send the actual request.
+
+   In summary, the CORS (Cross-Origin Resource Sharing) mechanism is a security strategy that ensures cross-origin requests won't be triggered without explicit authorization. The preflight request is a part of CORS, and by inspecting the server's response headers, the browser can decide whether to proceed with the actual request.
+
+
+
+#### 2. Content-Length
+
+**Set Length**
+
+```js
+router.route('/api/example')
+    .get((req, res) => {
+        const responseData = { message: 'GET request handled' };
+        res.setHeader('Content-Type', 'text/plain');
+        res.status(200).json(responseData);
+    })
+    .post((req, res) => {
+        const responseData = { message: 'POST request handled' };
+        const responseBody = JSON.stringify(responseData);
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Length', Buffer.byteLength(responseBody));
+        res.status(200).json(responseData);
+    });
+```
+
+
+
+#### 3. Cache-Control
+
+`res.setHeader('X-Custom-Header', 'Custom-Value');` This line of code sets a custom HTTP response header. Let's break down some key parts of it:
+
+- `res.setHeader`: This is the method in the Express framework used to set HTTP response headers.
+
+- `'X-Custom-Header'`: This is a custom response header name. Response headers starting with 'X-' are typically used for custom headers specific to an application or service.
+
+- `'Custom-Value'`: This is the value you set for the custom response header `'X-Custom-Header'`. In practice, you can set it to any string value you find appropriate to convey custom information in the response.
+
+In this example, by setting `'X-Custom-Header'`, you add a custom identifier or information to the response. This can be useful for identifying the processing status of a request, indicating the server version, or conveying other information relevant to the application. Browsers or clients can read this response header to obtain additional information or perform specific logic.
+
+```js
+router.use((req, res, next) => {
+    res.setHeader('X-Custom-Header', 'Custom-Value');
+
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    } else {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+});
+```
+
+**Considerations:** 
+In Express, `next` is a callback function used to pass control to the next middleware function in the middleware stack. Each middleware function takes three parameters: `req` (request object), `res` (response object), and `next` (callback function).
+
+When you call `next()`, Express moves to the next middleware that matches the request. If there are no more middleware functions, Express will end the request-response cycle. In this case, the purpose of `next` is to instruct Express to continue processing the next step in the request.
+
+Here, the purpose of `next()` is to pass the request to the route handler or the next middleware. If there are other routes or middleware defined after `router.use`, they will have a chance to handle the request. If there are no other matching middleware, the request will proceed to the route handler.
+
+
+
+#### 4. Date
+
+```js
+router.use((req, res, next) => {
+    res.setHeader('X-Custom-Header', 'Custom-Value');
+    res.setHeader('Date', new Date().toUTCString());
+
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    } else {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+});
+```
+
+**Considerations:** 
+
+In general, the `Date` header is **`automatically`** set by the server to indicate the date and time the response was sent. You don't need to explicitly set the `Date` header; Express automatically adds it to each response.
+
+In your code, setting the `Date` header is optional because Express defaults to setting this header. In fact, if you don't manually set the `Date` header, Express will automatically add the current date and time to the response.
+
+Therefore, if you don't explicitly set the `Date` header, the browser will still receive the `Date` header with the value representing the date and time when the server sent the response. You can check the response headers using the network tab in the browser developer tools to confirm if the `Date` header is correctly set.
+
+If you want to ensure that the `Date` header accurately reflects the time the server sent the response, you can use code like `res.setHeader('Date', new Date().toUTCString());`. However, please note that this may have limited impact on browser behavior as browsers typically handle the `Date` header on their own.
+
+
+
+#### 5. Server
+
+Add:
+
+```js
+res.setHeader('Server', "VL's Server");
+```
+
