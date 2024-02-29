@@ -397,3 +397,112 @@ Add:
 res.setHeader('Server', "VL's Server");
 ```
 
+
+
+#### 6. **ETag**
+
+Install require package `crypto` at first
+
+- createHash('md5'): Creates a hash object using the MD5 algorithm.
+- update(content): Adds the data to be hashed to the hash object.
+- digest('hex'): Retrieves the hash value in hexadecimal format.
+
+```js
+const content = "VL's ETAG";
+const etag = crypto.createHash('md5').update(content).digest('hex');
+const ifNoneMatch = req.headers['if-none-match'];
+
+if (ifNoneMatch === etag) {
+    res.status(304).end();
+} else {
+    res.setHeader('ETag', etag);
+
+    const responseData = { message: 'GET request handled' };
+    res.status(200).json(responseData);
+}
+```
+
+```js
+fetch('http://localhost:4500/api/example', {
+    method: "GET",
+    headers: {
+        "Content-Type":a "application/json",
+        "If-None-Match": "be1f50fbe9e9ba6774d634d052116e68" // 替换成上次获取资源时收到的 ETag 值
+    }
+}).then(response => {
+    if (response.status === 302) {
+        const redirectUrl = response.headers.get('Location');
+        console.log('Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;  // 执行重定向
+    } else if (response.status === 304) {
+        console.log('Resource not modified, using cached version.');
+    } else {
+        const etag = response.headers.get('ETag');
+        console.log('ETag:', etag);
+        return response.json();
+    }
+}).then(data=>{
+    console.log(data);
+}).catch(error => {
+    console.error('Fetch error:', error);
+});
+```
+
+However, `response.headers` is an empty object. We will address how to resolve such issues later on.
+
+
+
+#### 7. **Location**
+
+The purpose of `encodeURIComponent` is to convert special characters in a string into their URI-encoded forms, ensuring they can be safely used as part of a URI. Special characters include those that have special meanings in a URI, such as question mark (?), equal sign (=), ampersand (&), and others.
+
+**Usage:**
+
+```js
+const redirectTarget = "https://www.baidu.com";
+
+const apiUrl = `http://localhost:4500/api/example?redirect=${encodeURIComponent(redirectTarget)}`;
+
+fetch(apiUrl, {
+    method: "GET",
+    headers: {
+        "Content-Type": "application/json",
+        "If-None-Match": "be1f50fbe9e9ba6774d634d052116e68"
+    }
+}).then(response => {
+    if (response.status === 302) {
+        const redirectUrl = response.headers.get('Location');
+        console.log('Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;
+    } else if (response.status === 304) {
+        console.log('Resource not modified, using cached version.');
+    } else {
+        const etag = response.headers.get('ETag');
+        console.log('ETag:', etag);
+        return response.json();
+    }
+}).then(data => {
+    if (data !== null) {
+        console.log(data);
+    }
+}).catch(error => {
+    console.error('Fetch error:', error);
+});
+```
+
+Due to some issues, we are unable to retrieve the header. Don't worries, we will resolve it later.
+
+
+
+#### 8.  **Access-Control-Allow-Origin**
+
+
+
+
+
+#### 9. **Content-Disposition**
+
+
+
+#### 10. **Set-Cookie**
+
