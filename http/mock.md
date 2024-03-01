@@ -340,7 +340,7 @@ In this example, by setting `'X-Custom-Header'`, you add a custom identifier or 
 ```js
 router.use((req, res, next) => {
     res.setHeader('X-Custom-Header', 'Custom-Value');
-
+	
     if (req.method === 'GET') {
         res.setHeader('Cache-Control', 'public, max-age=3600');
     } else {
@@ -496,11 +496,79 @@ Due to some issues, we are unable to retrieve the header. Don't worries, we will
 
 #### 8.  **Access-Control-Allow-Origin**
 
+**What is `cors()` do?**
 
+1. **Setting the response header `Access-Control-Allow-Origin`：** is the most crucial part of CORS. It informs the browser which domains are allowed as the origin for cross-origin requests. Typically, it can be set to a specific domain or * to allow requests from any domain.
+2. **Handling preflight requests (OPTIONS requests):** For certain requests (such as those with custom request headers or using non-simple methods), the browser sends an OPTIONS preflight request to determine if it is safe to send the actual request. The `cors()` middleware automatically handles this preflight request, ensuring the correct response headers, including `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`, and `Access-Control-Max-Age`.
+3. **Allowing credentials to be carried:** By setting the `credentials` option, you can allow the browser to carry identity credentials (such as cookies, HTTP authentication, etc.) in cross-origin requests.
+4. **Other related CORS headers:** For example, `Access-Control-Expose-Headers` can specify which response headers can be exposed to front-end JavaScript, and `Access-Control-Allow-Credentials` indicates whether the request is allowed to carry identity credentials.
+
+> When sending a request to https://www.google.com, is there any issue with the following code?
+
+```js
+// app.use(cors());
+
+// --------------------Routes-------------------- //
+router.use((req, res, next) => {
+    // res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.google.com');
+    res.setHeader('X-Custom-Header', 'Custom-Value');
+    res.setHeader('Date', new Date().toUTCString());
+    res.setHeader('Server', "VL's Server");
+    
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    } else {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+});
+```
+
+The request fails due to a preflight OPTIONS request, and since Access-Control-Allow-Headers is not set on the backend, the request is unsuccessful.
+
+So, you also need to add the following line of code to make request `success`:
+
+```js
+// res.setHeader('Access-Control-Allow-Headers', '*');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match, Referer, Sec-Ch-Ua, Sec-Ch-Ua-Mobile, Sec-Ch-Ua-Platform, User-Agent');
+```
+
+Now, let's add `Access-Control-Max-Age` and `Access-Control-Allow-Methods`.
+
+**Complete example:**
+
+```js
+router.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // res.setHeader('Access-Control-Allow-Origin', 'https://www.google.com');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    // res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match, Referer, Sec-Ch-Ua, Sec-Ch-Ua-Mobile, Sec-Ch-Ua-Platform, User-Agent');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    res.setHeader('Access-Control-Max-Age', '3600');
+
+    res.setHeader('X-Custom-Header', 'Custom-Value');
+    res.setHeader('Date', new Date().toUTCString());
+    res.setHeader('Server', "VL's Server");
+
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    } else {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+});
+```
+
+You can observe the time spent in preflight by checking `Access-Control-Max-Age` to determine whether it was successful.
 
 
 
 #### 9. **Content-Disposition**
+
+
 
 
 
