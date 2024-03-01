@@ -427,13 +427,13 @@ fetch('http://localhost:4500/api/example', {
     method: "GET",
     headers: {
         "Content-Type":a "application/json",
-        "If-None-Match": "be1f50fbe9e9ba6774d634d052116e68" // 替换成上次获取资源时收到的 ETag 值
+        "If-None-Match": "be1f50fbe9e9ba6774d634d052116e68"
     }
 }).then(response => {
     if (response.status === 302) {
         const redirectUrl = response.headers.get('Location');
         console.log('Redirecting to:', redirectUrl);
-        window.location.href = redirectUrl;  // 执行重定向
+        window.location.href = redirectUrl;
     } else if (response.status === 304) {
         console.log('Resource not modified, using cached version.');
     } else {
@@ -664,3 +664,190 @@ res.setHeader('Access-Control-Expose-Headers', 'Date');
 **Node:**
 
 Earlier, we haven't been handling headers, but in reality, we need to add this property for us to successfully obtain it.
+
+
+
+### Independent task:
+
+Summarize the mentioned content.
+
+**app.js**
+
+```js
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const express = require('express');
+const http = require('http');
+
+// --------------------Configuration-------------------- //
+const app = express();
+const router = express.Router();
+
+app.use(bodyParser.json());
+
+// ==================== CORS MiddleWare ====================
+// const corsOptions = {
+//     origin: 'https://www.google.com',
+//     credentials: true,
+// };
+// app.use(cors(corsOptions));
+
+// --------------------Routes-------------------- //
+const intermediateRouter = require('./intermediate-router.js');
+app.use('', intermediateRouter);
+
+// --------------------Create Server-------------------- //
+const port = 4500;
+http.createServer(app).listen(port, '0.0.0.0', () => {
+    console.log(`Server start on port ${port}`);
+});
+```
+
+**fetch.js**
+
+```js
+const redirectTarget = "https://www.baidu.com/";
+
+const apiUrl = `http://localhost:4500/api/example?redirect=${encodeURIComponent(redirectTarget)}`;
+
+var headersInfo = {};
+
+var getResponse = async function (testCase) {
+    let apiUrl = 'http://localhost:4500/api/example';
+    let redirectTarget = "https://www.baidu.com/";
+    let fetchHeaders = {};
+    let method = 'GET';
+
+    if (testCase === 200) {
+        fetchHeaders = {
+            "Content-Type": "application/json",
+        }
+    } else if (testCase === 302) {
+        apiUrl = `http://localhost:4500/api/example?redirect=${encodeURIComponent(redirectTarget)}`;
+    } else if (testCase === 304) {
+        fetchHeaders = {
+            "Content-Type": "application/json",
+            "If-None-Match": "da6abab4563a9682dca2b2312b878acb"
+        }
+    } else if (testCase === 'download') {
+        fetchHeaders = {
+            "Content-Type": "text/plain",
+            "DownLoad": true
+        }
+    }
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: method,
+            headers: fetchHeaders,
+            credentials: 'include'
+        })
+        headersInfo.Server = response.headers.get('Server');
+        if (response.status === 200) {
+            // Please according to Content-Type get response
+            const res = await response;
+            console.log("status: 200", res);
+        } else if (response.status === 302) {
+            headersInfo.Location = response.headers.get('Location');
+            console.log("status: 302", headersInfo.Location);
+            // window.location.href = headersInfo.Location;
+        } else if (response.status === 304) {
+            console.log("status: 304")
+        }
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+    }
+}
+
+getResponse(200);
+```
+
+**intermediate-router.js**
+
+```js
+const express = require('express');
+const crypto = require('crypto');
+const intermediateRouter = express.Router();
+
+intermediateRouter.use((req, res, next) => {
+    // Access-Control-Allow
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.google.com');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Referer, Sec-Ch-Ua, Sec-Ch-Ua-Mobile, Sec-Ch-Ua-Platform, User-Agent');
+    res.setHeader('Access-Control-Allow-Methods', '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '3600');
+
+    // Expose Header
+    res.setHeader('Access-Control-Expose-Headers', 'Server, Location');
+
+    // X-Custom-Header
+    res.setHeader('X-Custom-Header', 'Custom-Value');
+
+    // Server
+    res.setHeader('Server', "VL's Mock Server");
+
+    // Date
+    res.setHeader('Date', new Date().toUTCString());
+
+    // Set-Cookie
+    res.cookie('access-token', 'dream-legacy', { httpOnly: true, secure: true, sameSite: 'None' });
+
+    // Cache-Control
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    } else {
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+});
+
+intermediateRouter.route('/api/example')
+    .get((req, res) => {
+        const responseData = { message: 'GET request handled' };
+
+        // Content-Length
+        res.setHeader('Content-Length', Buffer.byteLength(JSON.stringify(responseData)));
+
+        // ETag
+        const etagContent = "VL's Mock Server";
+        const etag = crypto.createHash('md5').update(etagContent).digest('hex');
+        const ifNoneMatch = req.headers['if-none-match'];
+
+        // redirect
+        const redirectTarget = req.query.redirect;
+
+        // download
+        const download = req.headers['download'];
+
+        if (ifNoneMatch === etag) {
+            res.status(304).end();
+        } else if (redirectTarget) {
+            // Location
+            res.redirect(302, redirectTarget);
+            // ==================== Equivalent result as the code below ====================
+            // res.setHeader('Location', redirectTarget);
+            // res.status(302).end();
+        } else if (download === 'true') {
+            // Content-Disposition
+            res.setHeader('Content-Disposition', 'attachment; filename="example.txt"');
+
+            res.setHeader('Content-Type', 'text/plain');
+
+            const responseData = 'This is the content of the example file.';
+            res.status(200).send(responseData);
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.status(200).json(responseData);
+        }
+    })
+    .post((req, res) => {
+        const responseData = { message: 'POST request handled' };
+        res.status(200).json(responseData);
+    })
+
+module.exports = intermediateRouter;
+```
+
+This is my summary, what about yours?
