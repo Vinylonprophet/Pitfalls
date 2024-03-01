@@ -537,6 +537,8 @@ res.setHeader('Access-Control-Allow-Headers', 'Content-Type, If-None-Match, Refe
 
 Now, let's add `Access-Control-Max-Age` and `Access-Control-Allow-Methods`.
 
+
+
 **Complete example:**
 
 ```js
@@ -568,9 +570,97 @@ You can observe the time spent in preflight by checking `Access-Control-Max-Age`
 
 #### 9. **Content-Disposition**
 
+Code:
 
+```js
+ res.setHeader('Content-Disposition', 'attachment; filename="example.txt"');
+```
 
 
 
 #### 10. **Set-Cookie**
 
+**CORS MiddleWare Code:**
+
+```js
+const corsOptions = {
+    origin: 'https://www.google.com',
+    credentials: true,
+};
+app.use(cors(corsOptions));
+```
+
+**Node:**
+When dealing with cross-origin requests, browsers enforce a security mechanism known as the "Same-Origin Policy," which prevents pages from making HTTP requests to a different domain. Cross-Origin Resource Sharing (CORS) is a mechanism that allows authorized access to resources by adding HTTP headers, specifying which origins are permitted.
+
+In `corsOptions`, `origin: 'https://www.google.com'` indicates that requests are only allowed from the origin `https://www.google.com`. `credentials: true` means allowing requests that include credentials (such as cookies, HTTP authentication).
+
+By using `app.use(cors(corsOptions))`, these CORS options are applied to the entire Express application, ensuring proper configuration of headers when handling cross-origin requests. This allows specific origins to access resources and handles credentials when necessary.
+
+This is crucial for securely handling cross-origin requests and provides the server with more refined control over such requests.
+
+
+
+**Fetch Function:**
+
+```js
+const redirectTarget = "https://www.baidu.com/";
+
+const apiUrl = `http://localhost:4500/api/example?redirect=${encodeURIComponent(redirectTarget)}`;
+
+fetch(apiUrl, {
+    method: "GET",
+    headers: {
+        "Content-Type": "application/json",
+        "If-None-Match": "1"
+    },
+    credentials: 'include'
+}).then(response => {
+    if (response.status === 302) {
+        const redirectUrl = response.headers.get('Location');
+        console.log('Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;
+    } else if (response.status === 304) {
+        console.log(response)
+        console.log('Resource not modified, using cached version.');
+    } else {
+        const etag = response.headers.get('ETag');
+        console.log('ETag:', etag);
+        return response.json();
+    }
+}).then(data => {
+    if (data !== null) {
+        console.log(data);
+    }
+}).catch(error => {
+    console.error('Fetch error:', error);
+});
+```
+
+**Node:**
+
+`credentials: 'include'` is a configuration option in the Fetch API used to control whether credentials information (such as Cookies, HTTP authentication, etc.) should be included in the request. Setting it to `'include'` means that the request will include credentials information, allowing cross-origin requests to carry Cookies.
+
+In cross-origin requests, by default, browsers do not send requests with credentials information (such as Cookies). However, if the server response includes appropriate CORS headers (such as `Access-Control-Allow-Credentials: true`), and the client request includes the configuration `credentials: 'include'`, the browser will include credentials information in the request.
+
+When using `credentials: 'include'`, it is important to ensure that the server is correctly configured with CORS headers to allow requests with credentials. This is done to ensure security and prevent potential Cross-Site Request Forgery (CSRF) attacks.
+
+
+
+**set cookie:**
+
+```js
+res.cookie('access-token', 'dream-legacy', { httpOnly: true, secure: true, sameSite: 'None' });
+```
+
+
+
+**Expose Header:**
+
+```js
+res.setHeader('Access-Control-Expose-Headers', 'Date');
+```
+
+**Node:**
+
+Earlier, we haven't been handling headers, but in reality, we need to add this property for us to successfully obtain it.

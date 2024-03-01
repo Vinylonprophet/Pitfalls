@@ -400,9 +400,79 @@ These headers can be used individually or together to meet specific cross-origin
 
 ##### 9. **Content-Disposition**
 
+`Content-Disposition` is an HTTP header used to indicate how the response content should be handled and whether there should be a prompt for the user, commonly used in file download scenarios.
 
+This header has two main purposes:
+
+1. **File Download Prompt:**
+   - When the server response includes a file for download, setting the `Content-Disposition` header can prompt the browser to display a file download dialog instead of opening the file directly in the browser.
+
+     ```http
+     Content-Disposition: attachment; filename="example.txt"
+     ```
+
+   - In the above example, `attachment` indicates that the file should be downloaded, and `filename="example.txt"` specifies the name of the downloaded file.
+
+2. **Inline Embedding:**
+   - If you want the browser to display the content directly rather than initiating a download, you can use `inline`.
+
+     ```http
+     Content-Disposition: inline
+     ```
+
+   - This is useful for content like PDF files that can be displayed directly in the browser.
+
+In summary, `Content-Disposition` is a versatile header that allows the server to instruct the browser on how to handle the response content.
 
 
 
 ##### 10. **Set-Cookie**
 
+`Set-Cookie` is a field set by the server in the HTTP response header to store cookies on the client. It is commonly used to store session information or identify user-related details on the client side.
+
+When the server includes the `Set-Cookie` field in the response header, the browser stores the cookie and sends it to the server in subsequent requests. The storage and sending of cookies can be subject to certain security policies implemented by the browser, such as the SameSite attribute.
+
+In your specific context, if the server sets `Set-Cookie` in the response, the browser will store the cookie upon receiving that response. In subsequent requests, the browser attaches the cookie to the request header and sends it back to the server.
+
+**Note:** The specific impact of `Set-Cookie` also depends on the browser's same-origin policy and the cookie's attribute settings. Ensure that your server-side and client-side code handle cookies correctly.
+
+
+
+`httpOnly`, `secure`, and `SameSite` are properties related to HTTP cookies. Their functions are as follows:
+
+1. **httpOnly:**
+   - **Function:** After setting `httpOnly`, JavaScript cannot access the cookie through `document.cookie`, providing additional protection against Cross-Site Scripting (XSS) attacks.
+   - **Setting:** When setting a cookie on the server side, add the `HttpOnly` attribute.
+
+   ```javascript
+   res.setHeader('Set-Cookie', 'myCookie=myValue; HttpOnly');
+   ```
+
+2. **secure:**
+   - **Function:** When the `secure` attribute is set, the cookie is only sent to the server when using a secure connection (HTTPS). This helps prevent the transmission of sensitive information over non-secure connections.
+   - **Setting:** When setting a cookie on the server side, add the `Secure` attribute.
+
+   ```javascript
+   res.setHeader('Set-Cookie', 'myCookie=myValue; Secure');
+   ```
+
+3. **SameSite:**
+   - **Function:** The `SameSite` attribute controls whether a cookie should be sent in cross-site requests. It has three possible values: `Strict`, `Lax`, and `None`.
+      - `Strict`: Send the cookie only if the request URL matches the cookie. It does not allow any third-party requests to send the cookie.
+      - `Lax`: Allows the cookie to be sent only with top-level navigations (e.g., clicking on a link). It also sends the cookie when submitting a form via the POST method.
+      - `None`: Always send the cookie, even with cross-site requests.
+   - **Setting:** When setting a cookie on the server side, add the `SameSite` attribute.
+
+   ```javascript
+   res.setHeader('Set-Cookie', 'myCookie=myValue; SameSite=Strict');
+   ```
+
+   ```javascript
+   res.setHeader('Set-Cookie', 'myCookie=myValue; SameSite=Lax');
+   ```
+
+   ```javascript
+   res.setHeader('Set-Cookie', 'myCookie=myValue; SameSite=None; Secure');
+   ```
+
+When setting these properties, choose based on specific requirements and security considerations. For example, when you want a cookie to be transmitted only over a secure connection and prevent JavaScript access, you can use `httpOnly`, `secure`, and `SameSite=None` attributes together.
