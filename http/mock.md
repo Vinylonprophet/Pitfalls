@@ -908,3 +908,59 @@ In the given code, `proxy` and `referer` are two parameters in the HTTP request 
 
 2. **`referer`:**
    - The `referer` field specifies the origin of the current request, indicating from which page or resource the request is coming. This helps the server understand the context of the request. In this example, the value of `referer` should be the URL of the referring page. If there is no specific referring page, it can be left empty or removed.
+
+Now, we integrate the previously mentioned `Set-Cookie` with www.google.com to insert the cookies obtained from the reverse proxy.
+
+**Code:**
+
+```js
+reverseProxyRouter.route('/reverse-proxy').get((req, res) => {
+    const body = {
+        example1,
+        example2
+    } = req.body;
+
+    body.example1 = 'example1';
+    body.exampl21 = 'example2';
+
+    options = {
+        'method': 'GET',
+        'url': '',
+        'proxy': '',
+        'json': true,
+        'body': body,
+        'headers': {
+            'referer': '',
+            Accept: "application/json",
+        }
+    }
+
+    request(options, function (error, response) {
+        if (error) {
+            console.log("Error: ", error);
+            res.status(500).send("Internal Server Error");
+        } else {
+            let resCookies = response.headers['set-cookie'];
+            resCookies.forEach(cookie => {
+                res.append('Set-Cookie', `${cookie}; SameSite=None; Secure`);
+            });
+            res.status(200).send(response.body);
+        }
+    })
+});
+```
+
+`SameSite=None; Secure` consists of two attributes used to configure cookies. Let's delve into the meanings of these two attributes:
+
+1. **`SameSite=None`:** This attribute allows cookies to be sent in cross-site requests. In the past, browsers, by default, did not send third-party cookies in such scenarios to enhance user privacy and security. However, with the evolution of web applications, there are cases where it's necessary to send cookies in cross-site requests. Setting `SameSite=None` permits this behavior.
+
+2. **`Secure`:** This attribute specifies that the cookie can only be transmitted over a secure connection (i.e., HTTPS). If your website is served over HTTPS, setting `Secure` ensures that the cookie is transmitted only over a secure connection, enhancing the security of user data.
+
+If you want to set a cookie that doesn't require a secure connection, you simply omit the `Secure` attribute. For example:
+
+```javascript
+// Without using the Secure attribute
+res.append('Set-Cookie', 'yourCookieName=yourCookieValue; SameSite=None');
+```
+
+Please note that if you omit the `Secure` attribute, the browser will assume that the cookie can be transmitted over an insecure connection by default.
