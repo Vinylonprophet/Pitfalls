@@ -1,5 +1,23 @@
 # Pitfalls-Http
 
+To facilitate a better understanding of the content in this chapter, it is recommended to pre-install `http-server` globally.
+
+The purpose of globally installing `http-server` is to make it available system-wide, allowing usage from any location in the terminal, rather than being restricted to a specific project directory. This way, you can launch `http-server` from any location in the terminal without needing to switch to a particular project directory. Global installation is achieved using the `-g` flag, which adds the tool to the system's global npm package directory, typically located in the system's executable path.
+
+**Some key advantages include:**
+
+1. **Global Accessibility:** With global installation, you can run `http-server` from any location in the command line without having to switch to a specific project directory.
+
+2. **Command Line Tool:** `http-server` is a convenient command-line tool for quickly starting a simple static file server. Global installation makes it an executable command.
+
+3. **Quick Access:** Through global installation, you can easily invoke `http-server` in the terminal without having to perform a local installation for each project.
+
+Note that globally installed tools may pose some potential issues, as different projects may require different versions of the tool. In such cases, local installation might be more suitable.
+
+For example, you can run the `http-server` command in a folder where a file named "poc.html" is located. Afterward, access the port it launches along with "poc.html" in your web browser.
+
+
+
 ## 1. Request
 
 ### Request-Interception
@@ -606,6 +624,8 @@ server{
     }
 }
 ```
+
+> I will write an article on the specific usage of Nginx when I have time later.
 
 
 
