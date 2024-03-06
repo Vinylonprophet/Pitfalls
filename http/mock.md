@@ -1,6 +1,6 @@
 # Pitfalls-Mock
 
-## Building a simple mock from scratch
+## 1. Building a simple mock from scratch
 
 ### Building package.json
 
@@ -129,7 +129,7 @@ http.createServer(app).listen(port, '0.0.0.0', () => {
 
 
 
-## Enhancing the mock
+## 2. Enhancing the mock
 
 ### Resolving Cross-Origin
 
@@ -851,3 +851,60 @@ module.exports = intermediateRouter;
 ```
 
 This is my summary, what about yours?
+
+
+
+## 3. Reverse Proxy
+
+Please install request package at first.
+
+> Note: In order to protect the server, I will not give the specific URL here.
+
+**Simple Example:**
+
+```js
+const express = require('express');
+const reverseProxyRouter = express.Router();
+const request = require('request');
+
+reverseProxyRouter.route('/reverse-proxy').get((req, res) => {
+    const body = {
+        example1,
+        example2
+    } = req.body;
+
+    body.example1 = 'example1';
+    body.exampl21 = 'example2';
+
+    options = {
+        'method': 'GET',
+        'url': '',
+        'proxy': '',
+        'json': true,
+        'body': body,
+        'headers': {
+            'referer': '',
+            Accept: "application/json",
+        }
+    }
+
+    request(options, function (error, response) {
+        if (error) {
+            console.log("Error: ", error);
+            res.status(500).send("Internal Server Error");
+        } else {
+            res.status(200).send(response.body);
+        }
+    })
+});
+
+module.exports = reverseProxyRouter;
+```
+
+In the given code, `proxy` and `referer` are two parameters in the HTTP request options.
+
+1. **`proxy`:**
+   - `proxy` is the address of a proxy server. The proxy server acts as an intermediary between the client and the target server, facilitating the sending and receiving of requests through it. This can be used to conceal the real IP address of the client, enhancing privacy or accessing restricted content. In this example, the value of `proxy` should be the address of a proxy server. If no proxy is used, it can be left empty or removed.
+
+2. **`referer`:**
+   - The `referer` field specifies the origin of the current request, indicating from which page or resource the request is coming. This helps the server understand the context of the request. In this example, the value of `referer` should be the URL of the referring page. If there is no specific referring page, it can be left empty or removed.

@@ -1,6 +1,6 @@
 # Pitfalls-Http
 
-## Request
+## 1. Request
 
 ### Request-Interception
 
@@ -52,7 +52,7 @@ HTMLFormElement.prototype.submit = function() {
 
 
 
-## API
+## 2. API
 
 ### API Design
 
@@ -476,3 +476,140 @@ In your specific context, if the server sets `Set-Cookie` in the response, the b
    ```
 
 When setting these properties, choose based on specific requirements and security considerations. For example, when you want a cookie to be transmitted only over a secure connection and prevent JavaScript access, you can use `httpOnly`, `secure`, and `SameSite=None` attributes together.
+
+
+
+## 3. Ways to Solve Cross Origin 
+
+### 1. CORS(Cross Origin Resource Sharing)
+
+**Definition:**
+
+CORS is a W3C standard. It allows explorer to send XMLHttpRequest to cross-origin web server, hence overcome the restriction that AJAX can only be used within same origin. The use of CORS requires support for both client and server.
+
+**Features:**
+
+- Auto completion by explorer, user participation not needed
+- No difference between CORS and same-origin AJAX communication
+- Key part is server(as long as the server implements CORS interface, corss-origin communication can be achieved)
+
+
+
+### 2. JSONP(JSON with Padding)
+
+**Principle:** calling js files on the web is not influenced by same-origin policy of the explorer, hence cross origin communication can be achieve via <script>.
+
+```js
+function callback(res){
+    console.log(res);
+}
+
+let script = document.createElement('script');
+
+script.src = 'https://www.example.com/login?username=admin&callback=callback';
+
+document.body.appendChild(script);
+```
+
+**Advantages:**
+
+- Not restricted by same-origin policy, unlike the way XMLHttpRequest object achieving Ajax request.
+- Has great compatibility and can be run in even very old explorers.
+- No XMLHttpRequest or ActiveX support needed and can get the response via calling callback functions after the completion of request.
+
+
+
+**Disadvantages:**
+
+- Only support `GET` method and no way for other HTTP request methods.
+- Only support the case for cross origin HTTP request and cannot solve the data communication problem of webpages from two different domains or between iframes.
+
+
+
+**Example:**
+
+```js
+function makeJSONPRequest(url, callbackName) {
+    var script = document.createElement('script');
+
+    script.src = url + '?callback=' + callbackName;
+
+    document.body.appendChild(script);
+}
+
+function handleJSONPResponse(response) {
+    console.log(response);
+}
+
+var apiUrl = 'https://www.baidu.com/my/favorites?page=1';
+var callbackFunction = 'handleJSONPResponse';
+
+makeJSONPRequest(apiUrl, callbackFunction);
+```
+
+**Note:** If you use an HTTP request instead of HTTPS, it will fail. The reason is that your page is loaded via HTTPS, but the JSONP request's URL is using HTTP, which violates the browser's security policy. Browsers do not allow loading insecure (HTTP) resources on HTTPS pages, leading to a Mixed Content error.
+
+
+
+### 3. Nginx Proxy
+
+Nginx (pronounced "engine-x") is an open-source, high-performance, lightweight web server that can also be used as a reverse proxy server, load balancer, and HTTP cache, among other functionalities. Typically, Nginx is employed to handle static files of web applications, proxy requests to application servers, and perform various other network services.
+
+Pure frontend development usually does not involve server-side work, so in general, frontend developers do not need to set up an Nginx server. Nginx is more commonly used in backend development and server configuration to provide web services or act as a reverse proxy. Frontend engineers typically host their static web pages or frontend applications on servers managed by backend teams or specialized hosting service providers.
+
+If you simply want to test or learn Nginx locally, you can install and run the Nginx server, configuring it to serve static files. However, in real production environments, Nginx is often used in conjunction with backend services to build a complete web application architecture.
+
+Principle: setting up a proxy server(domain name is the same as Domian1) via Engine X as a jump server, reverse proxy to access Domain2 interface; and can modify domain information inside the cookie at the same time, making it easy for writing in the cookie, hence achieving cross-origin communication.
+
+**Example1:**
+
+```nginx
+server{
+    listen: 80;
+    server_name www.domain1.com;
+    location / {
+        proxy_pass http://www.domain2.com:8080/;
+    }
+}
+```
+
+**Example2:**
+
+```nginx
+server{
+    listen: 81;
+    server_name www.domain1.com;
+    location / {
+        proxy_pass http://www.domain2.com:8081/;
+    }
+}
+```
+
+**Example3:**
+
+```nginx
+server{
+    listen: 80;
+    server_name www.domain1.com;
+    location / {
+    	// reverse proxy
+        proxy_pass http://www.domain2.com:8080/;
+
+    	// cookie
+    	proxy_pass_domain www.domain2.com www.domain1.com;
+
+    	index index.html index.html
+    
+    	add_header Access-Control-Allow-Origin http://www.domain1.com;
+    
+    	add_header Access-Control-Allow-Credentials true;
+    }
+}
+```
+
+
+
+### 4. Node Proxy
+
+You can refer to the chapter on **Reverse Proxy** in the article **Pitfalls-Mock**.
+
